@@ -60,7 +60,7 @@ public:
     void            set_trigger_distance(uint32_t distance_m) { _trigg_dist.set(distance_m); }
 
     // Update location of vehicle and return true if a picture should be taken
-    bool update_location(const struct Location &loc, const AP_AHRS &ahrs);
+    bool update_location(const struct Location &loc);
 
     static const struct AP_Param::GroupInfo        var_info[];
 
@@ -71,15 +71,12 @@ private:
     AP_Int16        _servo_on_pwm;      // PWM value to move servo to when shutter is activated
     AP_Int16        _servo_off_pwm;     // PWM value to move servo to when shutter is deactivated
     uint8_t         _trigger_counter;   // count of number of cycles shutter has been held open
-    AP_Relay       *_apm_relay;         // pointer to relay object from the base class Relay.
+    AP_Relay       *_apm_relay;         // pointer to relay object from the base class Relay. The subclasses could be AP_Relay_APM1 or AP_Relay_APM2
 
     void            servo_pic();        // Servo operated camera
     void            relay_pic();        // basic relay activation
 
     AP_Float        _trigg_dist;        // distance between trigger points (meters)
-    AP_Int16        _min_interval;      // Minimum time between shots required by camera
-    AP_Int16        _max_roll;          // Maximum acceptable roll angle when trigging camera
-    uint32_t        _last_photo_time;   // last time a photo was taken
     struct Location _last_location;
     uint16_t        _image_index;       // number of pictures taken since boot
 

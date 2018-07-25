@@ -45,20 +45,18 @@ private:
 
     static const uint8_t SBF_PREAMBLE1 = '$';
     static const uint8_t SBF_PREAMBLE2 = '@';
-
-    uint8_t _init_blob_index = 0;
-    uint32_t _init_blob_time = 0;
-    const char* _initialisation_blob[5] = {
-    "sso, Stream1, COM1, PVTGeodetic+DOP+ExtEventPVTGeodetic, msec100\n",
-    "srd, Moderate, UAV\n",
-    "sem, PVT, 5\n",
-    "spm, Rover, StandAlone+SBAS+DGPS+RTK\n",
-    "sso, Stream2, Dsk1, postprocess+event, msec100\n"};
+	
+	uint8_t _init_blob_index = 0;
+	uint32_t _init_blob_time = 0;
+	const char* _initialisation_blob[4] = {
+	"sso, Stream1, COM1, PVTGeodetic+DOP+ExtEventPVTGeodetic, msec100\n",
+	"srd, Moderate, UAV\n",
+	"sem, PVT, 5\n",
+	"spm, Rover, StandAlone+DGPS+RTK\n"};
    
     uint32_t last_hdop = 999;
     uint32_t crc_error_counter = 0;
-    uint32_t last_injected_data_ms = 0;
-    bool validcommand = false;
+	uint32_t last_injected_data_ms = 0;
 
     struct PACKED msg4007
     {
@@ -84,14 +82,14 @@ private:
          uint16_t MeanCorrAge;
          uint32_t SignalInfo;
          uint8_t AlertFlag;
-         // rev1
-         uint8_t NrBases;
-         uint16_t PPPInfo;
-         // rev2
-         uint16_t Latency;
-         uint16_t HAccuracy;
-         uint16_t VAccuracy;
-         uint8_t Misc;
+		 // rev1
+		 uint8_t NrBases;
+		 uint16_t PPPInfo;
+		 // rev2
+		 uint16_t Latency;
+		 uint16_t HAccuracy;
+		 uint16_t VAccuracy;
+		 uint8_t Misc;
     };
   
     struct PACKED msg4001
@@ -106,14 +104,14 @@ private:
          uint16_t VDOP;
          float HPL;
          float VPL;
-    };
-
-    union PACKED msgbuffer {
+    };	
+	
+	union PACKED msgbuffer {
         msg4007 msg4007u;
-        msg4001 msg4001u;
+		msg4001 msg4001u;
         uint8_t bytes[128];
     };
-
+	
     struct sbf_msg_parser_t
     {
         enum
@@ -135,7 +133,7 @@ private:
         msgbuffer data;
         uint16_t read;
     } sbf_msg;
-
+		
     void log_ExtEventPVTGeodetic(const msg4007 &temp);
 };
 

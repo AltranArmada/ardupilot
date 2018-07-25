@@ -7,54 +7,82 @@ using namespace Empty;
 
 extern const AP_HAL::HAL& hal;
 
-Scheduler::Scheduler()
+EmptyScheduler::EmptyScheduler()
 {}
 
-void Scheduler::init()
+void EmptyScheduler::init(void* machtnichts)
 {}
 
-void Scheduler::delay(uint16_t ms)
+void EmptyScheduler::delay(uint16_t ms)
 {}
 
-void Scheduler::delay_microseconds(uint16_t us)
+uint64_t EmptyScheduler::millis64() {
+    return 10000;
+}
+
+uint64_t EmptyScheduler::micros64() {
+    return 200000;
+}
+
+uint32_t EmptyScheduler::millis() {
+    return millis64();
+}
+
+uint32_t EmptyScheduler::micros() {
+    return micros64();
+}
+
+void EmptyScheduler::delay_microseconds(uint16_t us)
 {}
 
-void Scheduler::register_delay_callback(AP_HAL::Proc k,
+void EmptyScheduler::register_delay_callback(AP_HAL::Proc k,
             uint16_t min_time_ms)
 {}
 
-void Scheduler::register_timer_process(AP_HAL::MemberProc k)
+void EmptyScheduler::register_timer_process(AP_HAL::MemberProc k)
 {}
 
-void Scheduler::register_io_process(AP_HAL::MemberProc k)
+void EmptyScheduler::register_io_process(AP_HAL::MemberProc k)
 {}
 
-void Scheduler::register_timer_failsafe(AP_HAL::Proc, uint32_t period_us)
+void EmptyScheduler::register_timer_failsafe(AP_HAL::Proc, uint32_t period_us)
 {}
 
-void Scheduler::suspend_timer_procs()
+void EmptyScheduler::suspend_timer_procs()
 {}
 
-void Scheduler::resume_timer_procs()
+void EmptyScheduler::resume_timer_procs()
 {}
 
-bool Scheduler::in_timerprocess() {
+bool EmptyScheduler::in_timerprocess() {
     return false;
 }
 
-void Scheduler::begin_atomic()
+void EmptyScheduler::begin_atomic()
 {}
 
-void Scheduler::end_atomic()
+void EmptyScheduler::end_atomic()
 {}
 
-bool Scheduler::system_initializing() {
+bool EmptyScheduler::system_initializing() {
     return false;
 }
 
-void Scheduler::system_initialized()
+void EmptyScheduler::system_initialized()
 {}
 
-void Scheduler::reboot(bool hold_in_bootloader) {
+void EmptyScheduler::panic(const prog_char_t *errormsg, ...)
+{
+    va_list ap;
+
+    va_start(ap, errormsg);
+    hal.console->vprintf_P(errormsg, ap);
+    va_end(ap);
+    hal.console->printf_P("\n");
+
+    for(;;);
+}
+
+void EmptyScheduler::reboot(bool hold_in_bootloader) {
     for(;;);
 }

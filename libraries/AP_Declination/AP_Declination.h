@@ -1,7 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#pragma once
 
-#include <inttypes.h>
+#ifndef AP_Declination_h
+#define AP_Declination_h
 
 /*
  *	Adam M Rivera
@@ -19,3 +19,5 @@ public:
 private:
     static int16_t          get_lookup_value(uint8_t x, uint8_t y);
 };
+
+#endif // AP_Declination_h

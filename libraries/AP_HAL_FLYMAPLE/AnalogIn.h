@@ -82,7 +82,7 @@ private:
 class AP_HAL_FLYMAPLE_NS::FLYMAPLEAnalogIn : public AP_HAL::AnalogIn {
 public:
     FLYMAPLEAnalogIn();
-    void init();
+    void init(void* implspecific);
     AP_HAL::AnalogSource* channel(int16_t n);
     float board_voltage(void);
 

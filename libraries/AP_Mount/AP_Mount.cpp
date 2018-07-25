@@ -1,6 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_Common/AP_Common.h>
+#include <AP_Progmem/AP_Progmem.h>
 #include <AP_Param/AP_Param.h>
 #include "AP_Mount.h"
 #include "AP_Mount_Backend.h"
@@ -10,7 +11,7 @@
 #include "AP_Mount_SToRM32.h"
 #include "AP_Mount_SToRM32_serial.h"
 
-const AP_Param::GroupInfo AP_Mount::var_info[] = {
+const AP_Param::GroupInfo AP_Mount::var_info[] PROGMEM = {
     // @Param: _DEFLT_MODE
     // @DisplayName: Mount default operating mode
     // @Description: Mount default operating mode on startup and after control is returned from autopilot
@@ -196,7 +197,6 @@ const AP_Param::GroupInfo AP_Mount::var_info[] = {
     // @DisplayName: Mount Type
     // @Description: Mount Type (None, Servo or MAVLink)
     // @Values: 0:None, 1:Servo, 2:3DR Solo, 3:Alexmos Serial, 4:SToRM32 MAVLink, 5:SToRM32 Serial
-    // @RebootRequired: True
     // @User: Standard
     AP_GROUPINFO("_TYPE", 19, AP_Mount, state[0]._type, 0),
 
@@ -584,7 +584,7 @@ MAV_MOUNT_MODE AP_Mount::get_mode(uint8_t instance) const
 }
 
 // set_mode_to_default - restores the mode to it's default mode held in the MNT_MODE parameter
-//      this operation requires 60us on a Pixhawk/PX4
+//      this operation requires 230us on an APM2, 60us on a Pixhawk/PX4
 void AP_Mount::set_mode_to_default(uint8_t instance)
 {
     set_mode(instance, (enum MAV_MOUNT_MODE)state[instance]._default_mode.get());

@@ -43,10 +43,17 @@ public:
      */
     virtual bool update() = 0;
 
-    /*
-     * optional function to accumulate more samples. This is needed for drivers that don't use a timer to gather samples
+    /* 
+     * return true if at least one accel sample is available in the backend
+     * since the last call to update()
      */
-    virtual void accumulate() {}
+    virtual bool accel_sample_available() = 0;
+
+    /* 
+     * return true if at least one gyro sample is available in the backend
+     * since the last call to update()
+     */
+    virtual bool gyro_sample_available() = 0;
 
     /*
      * Configure and start all sensors. The empty implementation allows
@@ -80,7 +87,7 @@ protected:
     // be it published or not
     // the sample is raw in the sense that it's not filtered yet, but it must
     // be rotated and corrected (_rotate_and_correct_gyro)
-    void _notify_new_gyro_raw_sample(uint8_t instance, const Vector3f &accel, uint64_t sample_us=0);
+    void _notify_new_gyro_raw_sample(uint8_t instance, const Vector3f &accel);
 
     // rotate accel vector, scale, offset and publish
     void _publish_accel(uint8_t instance, const Vector3f &accel);
@@ -89,17 +96,19 @@ protected:
     // be it published or not
     // the sample is raw in the sense that it's not filtered yet, but it must
     // be rotated and corrected (_rotate_and_correct_accel)
-    void _notify_new_accel_raw_sample(uint8_t instance, const Vector3f &accel, uint64_t sample_us=0);
+    void _notify_new_accel_raw_sample(uint8_t instance, const Vector3f &accel);
 
     // set accelerometer max absolute offset for calibration
     void _set_accel_max_abs_offset(uint8_t instance, float offset);
 
-    // get accelerometer raw sample rate
+    // set accelerometer raw sample rate
+    void _set_accel_raw_sample_rate(uint8_t instance, uint32_t rate);
     uint32_t _accel_raw_sample_rate(uint8_t instance) const {
         return _imu._accel_raw_sample_rates[instance];
     }
 
-    // get gyroscope raw sample rate
+    // set gyroscope raw sample rate
+    void _set_gyro_raw_sample_rate(uint8_t instance, uint32_t rate);
     uint32_t _gyro_raw_sample_rate(uint8_t instance) const {
         return _imu._gyro_raw_sample_rates[instance];
     }
@@ -133,16 +142,6 @@ protected:
         return _imu._log_raw_data? _imu._dataflash : NULL; 
     }
 
-    // common gyro update function for all backends
-    void update_gyro(uint8_t instance);
-
-    // common accel update function for all backends
-    void update_accel(uint8_t instance);
-    
-    // support for updating filter at runtime
-    int8_t _last_accel_filter_hz[INS_MAX_INSTANCES];
-    int8_t _last_gyro_filter_hz[INS_MAX_INSTANCES];
-    
     // note that each backend is also expected to have a static detect()
     // function which instantiates an instance of the backend sensor
     // driver if the sensor is available

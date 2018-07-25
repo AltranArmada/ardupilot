@@ -9,7 +9,6 @@
 #include "AP_HAL_SITL.h"
 #include "AP_HAL_SITL_Namespace.h"
 #include "HAL_SITL_Class.h"
-#include "RCInput.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,18 +19,16 @@
 #include <AP_Baro/AP_Baro.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_Compass/Compass.h>
+#include <AP_RangeFinder/AP_RangeFinder.h>
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
 #include <AP_Terrain/AP_Terrain.h>
 #include <SITL/SITL.h>
 #include <SITL/SIM_Gimbal.h>
-#include <SITL/SIM_ADSB.h>
-#include <AP_HAL/utility/Socket.h>
 
 class HAL_SITL;
 
 class HALSITL::SITL_State {
-    friend class HALSITL::Scheduler;
-    friend class HALSITL::Util;
+    friend class HALSITL::SITLScheduler;
 public:
     void init(int argc, char * const argv[]);
 
@@ -46,7 +43,7 @@ public:
     ssize_t gps_read(int fd, void *buf, size_t count);
     uint16_t pwm_output[SITL_NUM_CHANNELS];
     uint16_t last_pwm_output[SITL_NUM_CHANNELS];
-    uint16_t pwm_input[SITL_RC_INPUT_CHANNELS];
+    uint16_t pwm_input[8];
     bool new_rc_input;
     void loop_hook(void);
     uint16_t base_port(void) const {
@@ -62,20 +59,11 @@ public:
     // return TCP client address for uartC
     const char *get_client_address(void) const { return _client_address; }
 
-    // paths for UART devices
-    const char *_uart_path[5] {
-        "tcp:0:wait",
-        "GPS1",
-        "tcp:2",
-        "tcp:3",
-        "GPS2"
-    };
-    
 private:
     void _parse_command_line(int argc, char * const argv[]);
     void _set_param_default(const char *parm);
     void _usage(void);
-    void _sitl_setup(const char *home_str);
+    void _sitl_setup(void);
     void _setup_fdm(void);
     void _setup_timer(void);
     void _setup_adc(void);
@@ -84,6 +72,7 @@ private:
     void _update_barometer(float height);
     void _update_compass(float rollDeg, float pitchDeg, float yawDeg);
     void _update_flow(void);
+    void _update_range_finder(float range);
 
     struct gps_data {
         double latitude;
@@ -122,17 +111,20 @@ private:
                      float airspeed,	float altitude);
     void _fdm_input(void);
     void _fdm_input_local(void);
-    void _output_to_flightgear(void);
     void _simulator_servos(SITL::Aircraft::sitl_input &input);
     void _simulator_output(bool synthetic_clock_mode);
     void _apply_servo_filter(float deltat);
     uint16_t _airspeed_sensor(float airspeed);
     uint16_t _ground_sonar();
+    float _gyro_drift(void);
     float _rand_float(void);
     Vector3f _rand_vec3f(void);
     void _fdm_input_step(void);
 
     void wait_clock(uint64_t wait_time_usec);
+
+    pthread_t _fdm_thread_ctx;
+    void _fdm_thread(void);
 
     // internal state
     enum vehicle_type _vehicle;
@@ -142,15 +134,17 @@ private:
     struct sockaddr_in _rcout_addr;
     pid_t _parent_pid;
     uint32_t _update_count;
+    bool _motors_on;
 
     AP_Baro *_barometer;
     AP_InertialSensor *_ins;
-    Scheduler *_scheduler;
+    SITLScheduler *_scheduler;
     Compass *_compass;
     OpticalFlow *_optical_flow;
+    RangeFinder *_range_finder;
     AP_Terrain *_terrain;
 
-    SocketAPM _sitl_rc_in{true};
+    int _sitl_fd;
     SITL::SITL *_sitl;
     uint16_t _rcout_port;
     uint16_t _simin_port;
@@ -205,17 +199,8 @@ private:
     bool enable_gimbal;
     SITL::Gimbal *gimbal;
 
-    // simulated gimbal
-    bool enable_ADSB;
-    SITL::ADSB *adsb;
-
-    // output socket for flightgear viewing
-    SocketAPM fg_socket{true};
-    
     // TCP address to connect uartC to
     const char *_client_address;
-
-    const char *defaults_path = HAL_PARAM_DEFAULTS_PATH;
 };
 
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL

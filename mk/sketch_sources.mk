@@ -2,7 +2,7 @@
 # Sketch
 #
 
-SRCSUFFIXES = *.cpp
+SRCSUFFIXES = *.cpp *.c *.S
 
 MAKE_INC=$(wildcard $(SRCROOT)/make.inc)
 ifeq (,$(MAKE_INC))
@@ -61,11 +61,6 @@ endif
 ifeq ($(HAL_BOARD),HAL_BOARD_FLYMAPLE)
 LIBTOKENS += \
 	AP_HAL_FLYMAPLE
-endif
-
-ifeq ($(HAL_BOARD),HAL_BOARD_QURT)
-LIBTOKENS += \
-	AP_HAL_QURT
 endif
 
 #

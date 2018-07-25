@@ -9,8 +9,6 @@
 #define AP_OpticalFlow_Linux_H
 
 #include "OpticalFlow.h"
-
-#include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
 
 class AP_OpticalFlow_Linux : public OpticalFlow_backend
@@ -27,7 +25,7 @@ public:
 
 private:
 
-    typedef struct PACKED {
+    typedef struct {
         uint16_t frame_count;
         int16_t pixel_flow_x_sum;
         int16_t pixel_flow_y_sum;
@@ -42,7 +40,7 @@ private:
         int16_t ground_distance;
     } i2c_frame;
 
-    typedef struct PACKED {
+    typedef struct {
         uint16_t frame_count_since_last_readout;
         int16_t pixel_flow_x_integral;
         int16_t pixel_flow_y_integral;

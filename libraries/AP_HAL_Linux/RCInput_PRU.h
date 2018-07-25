@@ -16,7 +16,7 @@
 class Linux::RCInput_PRU : public Linux::RCInput
 {
 public:
-    void init();
+    void init(void*);
     void _timer_tick(void);
 
  private:

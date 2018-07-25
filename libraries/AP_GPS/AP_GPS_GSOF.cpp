@@ -23,6 +23,8 @@
 #include "AP_GPS_GSOF.h"
 #include <DataFlash/DataFlash.h>
 
+#if GPS_RTK_AVAILABLE
+
 extern const AP_HAL::HAL& hal;
 
 #define gsof_DEBUGGING 0
@@ -45,12 +47,9 @@ AP_GPS_GSOF::AP_GPS_GSOF(AP_GPS &_gps, AP_GPS::GPS_State &_state,
 {
     gsof_msg.gsof_state = gsof_msg_parser_t::STARTTX;
 
-    // baud request for port 0
-    requestBaud(0);
-    // baud request for port 3
-    requestBaud(3);
+    requestBaud();
 
-    uint32_t now = AP_HAL::millis();
+    uint32_t now = hal.scheduler->millis();
     gsofmsg_time = now + 110;
 }
 
@@ -59,12 +58,11 @@ AP_GPS_GSOF::AP_GPS_GSOF(AP_GPS &_gps, AP_GPS::GPS_State &_state,
 bool
 AP_GPS_GSOF::read(void)
 {
-    uint32_t now = AP_HAL::millis();
+    uint32_t now = hal.scheduler->millis();
 
     if (gsofmsgreq_index < (sizeof(gsofmsgreq))) {
         if (now > gsofmsg_time) {
-            requestGSOF(gsofmsgreq[gsofmsgreq_index], 0);
-            requestGSOF(gsofmsgreq[gsofmsgreq_index], 3);
+            requestGSOF(gsofmsgreq[gsofmsgreq_index]);
             gsofmsg_time = now + 110;
             gsofmsgreq_index++;
         }
@@ -136,11 +134,11 @@ AP_GPS_GSOF::parse(uint8_t temp)
 }
 
 void
-AP_GPS_GSOF::requestBaud(uint8_t portindex)
+AP_GPS_GSOF::requestBaud()
 {
     uint8_t buffer[19] = {0x02,0x00,0x64,0x0d,0x00,0x00,0x00, // application file record
                           0x03, 0x00, 0x01, 0x00, // file control information block
-                          0x02, 0x04, portindex, 0x07, 0x00,0x00, // serial port baud format
+                          0x02, 0x04, 0x00, 0x07, 0x00,0x00, // serial port baud format
                           0x00,0x03
                          }; // checksum
 
@@ -157,11 +155,11 @@ AP_GPS_GSOF::requestBaud(uint8_t portindex)
 }
 
 void
-AP_GPS_GSOF::requestGSOF(uint8_t messagetype, uint8_t portindex)
+AP_GPS_GSOF::requestGSOF(uint8_t messagetype)
 {
     uint8_t buffer[21] = {0x02,0x00,0x64,0x0f,0x00,0x00,0x00, // application file record
                           0x03,0x00,0x01,0x00, // file control information block
-                          0x07,0x06,0x0a,portindex,0x01,0x00,0x01,0x00, // output message record
+                          0x07,0x06,0x0a,0x00,0x01,0x00,0x01,0x00, // output message record
                           0x00,0x03
                          }; // checksum
 
@@ -243,7 +241,7 @@ AP_GPS_GSOF::SwapUint16(uint8_t* src, uint32_t pos)
 bool
 AP_GPS_GSOF::process_message(void)
 {
-    //http://www.trimble.com/OEM_ReceiverHelp/V4.81/en/default.html#welcome.html
+    //http://www.trimble.com/EC_ReceiverHelp/V4.19/en/GSOFmessages_Overview.htm
 
     if (gsof_msg.packettype == 0x40) { // GSOF
 #if gsof_DEBUGGING
@@ -349,9 +347,10 @@ AP_GPS_GSOF::inject_data(uint8_t *data, uint8_t len)
 {
 
     if (port->txspace() > len) {
-        last_injected_data_ms = AP_HAL::millis();
+        last_injected_data_ms = hal.scheduler->millis();
         port->write(data, len);
     } else {
         Debug("GSOF: Not enough TXSPACE");
     }
 }
+#endif // GPS_RTK_AVAILABLE

@@ -108,14 +108,14 @@ void RPIOUARTDriver::begin(uint32_t b, uint16_t rxS, uint16_t txS)
    _spi = hal.spi->device(AP_HAL::SPIDevice_RASPIO);
 
    if (_spi == NULL) {
-       AP_HAL::panic("Cannot get SPIDevice_RASPIO");
+       hal.scheduler->panic("Cannot get SPIDevice_RASPIO");
    }
 
    _spi_sem = _spi->get_semaphore();
     
     if (_spi_sem == NULL) {
-        AP_HAL::panic("PANIC: RASPIOUARTDriver did not get "
-                                  "valid SPI semaphore!");
+        hal.scheduler->panic(PSTR("PANIC: RASPIOUARTDriver did not get "
+                                  "valid SPI semaphore!"));
         return; // never reached
     }
     
@@ -191,7 +191,7 @@ void RPIOUARTDriver::_timer_tick(void)
     if (!_initialised) return;
     
     /* lower the update rate */
-    if (AP_HAL::micros() - _last_update_timestamp < RPIOUART_POLL_TIME_INTERVAL) {
+    if (hal.scheduler->micros() - _last_update_timestamp < RPIOUART_POLL_TIME_INTERVAL) {
         return;
     }
     
@@ -287,7 +287,7 @@ void RPIOUARTDriver::_timer_tick(void)
     
     _in_timer = false;
     
-    _last_update_timestamp = AP_HAL::micros();
+    _last_update_timestamp = hal.scheduler->micros();
 }
 
 #endif

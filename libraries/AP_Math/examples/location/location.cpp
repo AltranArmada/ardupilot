@@ -66,10 +66,10 @@ static void test_one_offset(const struct Location &loc,
     float dist2, bearing2;
 
     loc2 = loc;
-    uint32_t t1 = AP_HAL::micros();
+    uint32_t t1 = hal.scheduler->micros();
     location_offset(loc2, ofs_north, ofs_east);
     hal.console->printf("location_offset took %u usec\n",
-                        (unsigned)(AP_HAL::micros() - t1));
+                        (unsigned)(hal.scheduler->micros() - t1));
     dist2 = get_distance(loc, loc2);
     bearing2 = get_bearing_cd(loc, loc2) * 0.01f;
     float brg_error = bearing2-bearing;
@@ -234,6 +234,7 @@ static void test_wrap_cd(void)
     hal.console->printf("wrap_cd tests done\n");
 }
 
+#if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 static void test_wgs_conversion_functions(void)
 {
 
@@ -318,6 +319,7 @@ static void test_wgs_conversion_functions(void)
 
     }
 }
+#endif //HAL_CPU_CLASS
 
 /*
  *  polygon tests
@@ -328,7 +330,9 @@ void setup(void)
     test_offset();
     test_accuracy();
     test_wrap_cd();
+#if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
     test_wgs_conversion_functions();
+#endif
     hal.console->printf("ALL TESTS DONE\n");
 }
 

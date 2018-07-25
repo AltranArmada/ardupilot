@@ -427,7 +427,7 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
     switch (id) {
     case MSG_HEARTBEAT:
         CHECK_PAYLOAD_SIZE(HEARTBEAT);
-        rover.gcs[chan-MAVLINK_COMM_0].last_heartbeat_time = AP_HAL::millis();        
+        rover.gcs[chan-MAVLINK_COMM_0].last_heartbeat_time = hal.scheduler->millis();        
         rover.send_heartbeat(chan);
         return true;
 
@@ -615,7 +615,7 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
 /*
   default stream rates to 1Hz
  */
-const AP_Param::GroupInfo GCS_MAVLINK::var_info[] = {
+const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
     // @Param: RAW_SENS
     // @DisplayName: Raw sensor stream rate
     // @Description: Raw sensor stream rate to ground station
@@ -878,7 +878,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             uint8_t result = MAV_RESULT_UNSUPPORTED;
 
             // do command
-            send_text(MAV_SEVERITY_INFO,"Command received: ");
+            send_text_P(MAV_SEVERITY_WARNING,PSTR("command received: "));
 
             switch(packet.command) {
 
@@ -957,10 +957,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 break;
 
             case MAV_CMD_PREFLIGHT_CALIBRATION:
-                if(hal.util->get_soft_armed()) {
-                    result = MAV_RESULT_FAILED;
-                    break;
-                }
                 if (is_equal(packet.param1,1.0f)) {
                     rover.ins.init_gyro();
                     if (rover.ins.gyro_calibrated_ok_all()) {
@@ -976,18 +972,21 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     rover.trim_radio();
                     result = MAV_RESULT_ACCEPTED;
                 } else if (is_equal(packet.param5,1.0f)) {
-                    result = MAV_RESULT_ACCEPTED;
+                    float trim_roll, trim_pitch;
+                    AP_InertialSensor_UserInteract_MAVLink interact(this);
                     // start with gyro calibration
                     rover.ins.init_gyro();
                     // reset ahrs gyro bias
                     if (rover.ins.gyro_calibrated_ok_all()) {
                         rover.ahrs.reset_gyro_drift();
+                    }
+                    if(rover.ins.calibrate_accel(&interact, trim_roll, trim_pitch)) {
+                        // reset ahrs's trim to suggested values from calibration routine
+                        rover.ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
+                        result = MAV_RESULT_ACCEPTED;
                     } else {
                         result = MAV_RESULT_FAILED;
                     }
-                    rover.ins.acal_init();
-                    rover.ins.get_acal()->start(this);
-
                 } else if (is_equal(packet.param5,2.0f)) {
                     // start with gyro calibration
                     rover.ins.init_gyro();
@@ -1002,7 +1001,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     }
                 }
                 else {
-                    send_text(MAV_SEVERITY_WARNING, "Unsupported preflight calibration");
+                    send_text_P(MAV_SEVERITY_WARNING, PSTR("Unsupported preflight calibration"));
                 }
                 break;
 
@@ -1076,30 +1075,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             }
             break;
 
-        case MAV_CMD_COMPONENT_ARM_DISARM:
-            if (is_equal(packet.param1,1.0f)) {
-                // run pre_arm_checks and arm_checks and display failures
-                if (rover.arm_motors(AP_Arming::MAVLINK)) {
-                    result = MAV_RESULT_ACCEPTED;
-                } else {
-                    result = MAV_RESULT_FAILED;
-                }
-            } else if (is_zero(packet.param1))  {
-                if (rover.disarm_motors()) {
-                    result = MAV_RESULT_ACCEPTED;
-                } else {
-                    result = MAV_RESULT_FAILED;
-                }
-            } else {
-                result = MAV_RESULT_UNSUPPORTED;
-            }
-            break;
-
         case MAV_CMD_GET_HOME_POSITION:
-            if (rover.home_is_set != HOME_UNSET) {
-                send_home(rover.ahrs.get_home());
-                result = MAV_RESULT_ACCEPTED;
-            }
+            send_home(rover.ahrs.get_home());
             break;
 
         case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES: {
@@ -1128,6 +1105,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
             break;
         }
+
 
     case MAVLINK_MSG_ID_SET_MODE:
 		{
@@ -1159,10 +1137,10 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
         {
             // mark the firmware version in the tlog
-            send_text(MAV_SEVERITY_INFO, FIRMWARE_STRING);
+            send_text_P(MAV_SEVERITY_WARNING, PSTR(FIRMWARE_STRING));
 
 #if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
-            send_text(MAV_SEVERITY_INFO, "PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION);
+            send_text_P(MAV_SEVERITY_WARNING, PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
 #endif
             handle_param_request_list(msg);
             break;
@@ -1235,7 +1213,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         hal.rcin->set_overrides(v, 8);
 
-        rover.failsafe.rc_override_timer = AP_HAL::millis();
+        rover.failsafe.rc_override_timer = hal.scheduler->millis();
         rover.failsafe_trigger(FAILSAFE_EVENT_RC, false);
         break;
     }
@@ -1244,7 +1222,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         {
             // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
 			if(msg->sysid != rover.g.sysid_my_gcs) break;
-            rover.last_heartbeat_ms = rover.failsafe.rc_override_timer = AP_HAL::millis();
+            rover.last_heartbeat_ms = rover.failsafe.rc_override_timer = hal.scheduler->millis();
             rover.failsafe_trigger(FAILSAFE_EVENT_GCS, false);
             break;
         }
@@ -1343,6 +1321,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
         break;
 
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
     case MAVLINK_MSG_ID_SERIAL_CONTROL:
         handle_serial_control(msg, rover.gps);
         break;
@@ -1350,10 +1329,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_GPS_INJECT_DATA:
         handle_gps_inject(msg, rover.gps);
         break;
-
-    case MAVLINK_MSG_ID_REMOTE_LOG_BLOCK_STATUS:
-        rover.DataFlash.remote_log_block_status_msg(chan, msg);
-        break;
+        
+#endif
 
     case MAVLINK_MSG_ID_AUTOPILOT_VERSION_REQUEST:
         rover.gcs[chan-MAVLINK_COMM_0].send_autopilot_version(FIRMWARE_VERSION);
@@ -1389,7 +1366,7 @@ void Rover::mavlink_delay_cb()
     }
     if (tnow - last_5s > 5000) {
         last_5s = tnow;
-        gcs_send_text(MAV_SEVERITY_INFO, "Initialising APM");
+        gcs_send_text_P(MAV_SEVERITY_WARNING, PSTR("Initialising APM..."));
     }
     check_usb_mux();
 
@@ -1449,15 +1426,15 @@ void Rover::gcs_update(void)
     }
 }
 
-void Rover::gcs_send_text(MAV_SEVERITY severity, const char *str)
+void Rover::gcs_send_text_P(MAV_SEVERITY severity, const prog_char_t *str)
 {
     for (uint8_t i=0; i<num_gcs; i++) {
         if (gcs[i].initialised) {
-            gcs[i].send_text(severity, str);
+            gcs[i].send_text_P(severity, str);
     }
     }
 #if LOGGING_ENABLED == ENABLED
-    DataFlash.Log_Write_Message(str);
+    DataFlash.Log_Write_Message_P(str);
 #endif
 }
 
@@ -1466,12 +1443,12 @@ void Rover::gcs_send_text(MAV_SEVERITY severity, const char *str)
  *  only one fits in the queue, so if you send more than one before the
  *  last one gets into the serial buffer then the old one will be lost
  */
-void Rover::gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...)
+void Rover::gcs_send_text_fmt(const prog_char_t *fmt, ...)
 {
     va_list arg_list;
-    gcs[0].pending_status.severity = (uint8_t)severity;
+    gcs[0].pending_status.severity = (uint8_t)MAV_SEVERITY_WARNING;
     va_start(arg_list, fmt);
-    hal.util->vsnprintf((char *)gcs[0].pending_status.text,
+    hal.util->vsnprintf_P((char *)gcs[0].pending_status.text,
             sizeof(gcs[0].pending_status.text), fmt, arg_list);
     va_end(arg_list);
 #if LOGGING_ENABLED == ENABLED

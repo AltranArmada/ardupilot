@@ -9,7 +9,7 @@
 
 class HALSITL::ADCSource : public AP_HAL::AnalogSource {
 public:
-    friend class HALSITL::AnalogIn;
+    friend class HALSITL::SITLAnalogIn;
     /* pin designates the ADC input number */
     ADCSource(SITL_State *sitlState, uint8_t pin);
 
@@ -30,14 +30,14 @@ private:
     uint8_t _pin;
 };
 
-/* AnalogIn : a concrete class providing the implementations of the
+/* SITLAnalogIn : a concrete class providing the implementations of the
  * timer event and the AP_HAL::AnalogIn interface */
-class HALSITL::AnalogIn : public AP_HAL::AnalogIn {
+class HALSITL::SITLAnalogIn : public AP_HAL::AnalogIn {
 public:
-    AnalogIn(SITL_State *sitlState) {
+    SITLAnalogIn(SITL_State *sitlState) {
         _sitlState = sitlState;
     }
-    void init();
+    void init(void* ap_hal_scheduler);
     AP_HAL::AnalogSource* channel(int16_t n);
     float board_voltage(void) {
         return 5.0f;

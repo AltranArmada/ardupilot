@@ -16,8 +16,14 @@
 
 // Copyright (C) 2010 Swift Navigation Inc.
 // Contact: Fergus Noble <fergus@swift-nav.com>
-#pragma once
+   
+#ifndef __EDC_H_
+#define __EDC_H_
 
-#include <inttypes.h>
+#include <AP_Progmem/AP_Progmem.h>
+
+#include <stdint.h>
 
 uint16_t crc16_ccitt(const uint8_t *buf, uint32_t len, uint16_t crc);
+
+#endif /* __EDC_H_ */

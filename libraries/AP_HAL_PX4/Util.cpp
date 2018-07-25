@@ -124,9 +124,14 @@ bool PX4Util::get_system_id(char buf[40])
 /**
    how much free memory do we have in bytes.
 */
-uint32_t PX4Util::available_memory(void) 
+uint16_t PX4Util::available_memory(void) 
 {
-    return mallinfo().fordblks;
+    struct mallinfo mem;
+    mem = mallinfo();
+    if (mem.fordblks > 0xFFFF) {
+        return 0xFFFF;
+    }
+    return mem.fordblks;
 }
 
 /*

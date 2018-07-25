@@ -28,17 +28,18 @@
 
 // Libraries
 #include <AP_Common/AP_Common.h>
+#include <AP_Progmem/AP_Progmem.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Menu/AP_Menu.h>
 #include <AP_Param/AP_Param.h>
 #include <StorageManager/StorageManager.h>
 #include <AP_GPS/AP_GPS.h>         // ArduPilot GPS library
 #include <AP_ADC/AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
+#include <AP_ADC_AnalogSource/AP_ADC_AnalogSource.h>
 #include <AP_Baro/AP_Baro.h>
 #include <AP_Compass/AP_Compass.h>     // ArduPilot Mega Magnetometer Library
 #include <AP_Math/AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
 #include <AP_InertialSensor/AP_InertialSensor.h> // Inertial Sensor (uncalibated IMU) Library
-#include <AP_AccelCal/AP_AccelCal.h>                // interface and maths for accelerometer calibration
 #include <AP_AHRS/AP_AHRS.h>         // ArduPilot Mega DCM Library
 #include <AP_NavEKF/AP_NavEKF.h>
 #include <AP_NavEKF2/AP_NavEKF2.h>
@@ -71,7 +72,6 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_Frsky_Telem/AP_Frsky_Telem.h>
 
-#include <AP_Arming/AP_Arming.h>
 #include "compat.h"
 
 #include <AP_Notify/AP_Notify.h>      // Notify library
@@ -97,7 +97,6 @@ class Rover : public AP_HAL::HAL::Callbacks {
 public:
     friend class GCS_MAVLINK;
     friend class Parameters;
-    friend class AP_Arming;
 
     Rover(void);
 
@@ -112,6 +111,9 @@ private:
     // constructor runs before the constructors of the other AP_Param
     // variables
     AP_Param param_loader;
+
+    // the rate we run the main loop at
+    const AP_InertialSensor::Sample_rate ins_sample_rate;
 
     // all settable parameters
     Parameters g;
@@ -153,9 +155,6 @@ private:
     AP_AHRS_DCM ahrs {ins, barometer, gps};
 #endif
 
-    // Arming/Disarming mangement class
-    AP_Arming arming {ahrs, barometer, compass, home_is_set};
-
     AP_L1_Control L1_controller;
 
     // selected navigation controller
@@ -167,9 +166,7 @@ private:
     // Mission library
     AP_Mission mission;
 
-#if AP_AHRS_NAVEKF_AVAILABLE
-    OpticalFlow optflow{ahrs};
-#endif
+    OpticalFlow optflow;
     
     // RSSI 
     AP_RSSI rssi;          
@@ -318,9 +315,8 @@ private:
     // The home location used for RTL.  The location is set when we first get stable GPS lock
     const struct Location &home;
 
-    // Flag for if we have g_gps lock and have set the home location in AHRS
-    enum HomeState home_is_set = HOME_UNSET;
-
+    // Flag for if we have gps lock and have set the home location
+    bool home_is_set;
     // The location of the previous waypoint.  Used for track following and altitude ramp calculations
     struct Location prev_WP;
     // The location of the current/active waypoint.  Used for track following
@@ -364,17 +360,8 @@ private:
     // Loiter control
     uint16_t loiter_time_max; // How long we should loiter at the nav_waypoint (time in seconds)
     uint32_t loiter_time;     // How long have we been loitering - The start time in millis
+
     float distance_past_wp; // record the distance we have gone past the wp
-
-    // time that rudder/steering arming has been running
-    uint32_t rudder_arm_timer;
-
-    // true if we are in an auto-throttle mode, which means
-    // we need to run the speed controller
-    bool auto_throttle_mode;
-
-    // Store the time the last GPS message was received.
-    uint32_t last_gps_msg_ms{0}; 
 
 private:
     // private member functions
@@ -412,13 +399,13 @@ private:
     void gcs_send_mission_item_reached_message(uint16_t mission_index);
     void gcs_data_stream_send(void);
     void gcs_update(void);
-    void gcs_send_text(MAV_SEVERITY severity, const char *str);
+    void gcs_send_text_P(MAV_SEVERITY severity, const prog_char_t *str);
     void gcs_retry_deferred(void);
 
     void do_erase_logs(void);
     void Log_Write_Performance();
     void Log_Write_Steering();
-    void Log_Write_Startup(uint8_t type);
+    bool Log_Write_Startup(uint8_t type);
     void Log_Write_Control_Tuning();
     void Log_Write_Nav_Tuning();
     void Log_Write_Sonar();
@@ -431,7 +418,6 @@ private:
     void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page);
     void log_init(void);
     void start_logging() ;
-    void Log_Arm_Disarm();
 
     void load_parameters(void);
     void throttle_slew_limit(int16_t last_throttle);
@@ -455,6 +441,8 @@ private:
     void update_commands(void);
     void delay(uint32_t ms);
     void mavlink_delay(uint32_t ms);
+    uint32_t millis();
+    uint32_t micros();
     void read_control_switch();
     uint8_t readSwitch(void);
     void reset_control_switch();
@@ -480,6 +468,7 @@ private:
     void report_throttle();
     void report_compass();
     void report_modes();
+    void print_PID(PID * pid);
     void print_radio_values();
     void print_switch(uint8_t p, uint8_t m);
     void print_done();
@@ -502,7 +491,7 @@ private:
     bool should_log(uint32_t mask);
     void frsky_telemetry_send(void);
     void print_hit_enter();    
-    void gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...);
+    void gcs_send_text_fmt(const prog_char_t *fmt, ...);
     void print_mode(AP_HAL::BetterStream *port, uint8_t mode);
     bool start_command(const AP_Mission::Mission_Command& cmd);
     bool verify_command(const AP_Mission::Mission_Command& cmd);
@@ -516,13 +505,7 @@ private:
     void do_digicam_configure(const AP_Mission::Mission_Command& cmd);
     void do_digicam_control(const AP_Mission::Mission_Command& cmd);
     void init_capabilities(void);
-    void rudder_arm_disarm_check();
-    void change_arm_state(void);
-    bool disarm_motors(void);
-    bool arm_motors(AP_Arming::ArmingMethod method);
-    bool motor_active();
-    void update_home();
-    void accel_cal_update(void);
+
 public:
     bool print_log_menu(void);
     int8_t dump_log(uint8_t argc, const Menu::arg *argv);
@@ -561,8 +544,5 @@ public:
 
 extern const AP_HAL::HAL& hal;
 extern Rover rover;
-
-using AP_HAL::millis;
-using AP_HAL::micros;
 
 #endif // _ROVER_H_

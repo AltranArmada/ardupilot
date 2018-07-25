@@ -48,6 +48,7 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
     accel_noise(0.3),
     rate_hz(1200),
     autotest_dir(NULL),
+    ros_launch_file(NULL),
     frame(frame_str),
 #ifdef __CYGWIN__
     min_sleep_time(20000)
@@ -55,11 +56,22 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
     min_sleep_time(5000)
 #endif
 {
-    parse_home(home_str, home, home_yaw);
+    char *saveptr=NULL;
+    char *s = strdup(home_str);
+    char *lat_s = strtok_r(s, ",", &saveptr);
+    char *lon_s = strtok_r(NULL, ",", &saveptr);
+    char *alt_s = strtok_r(NULL, ",", &saveptr);
+    char *yaw_s = strtok_r(NULL, ",", &saveptr);
+
+    memset(&home, 0, sizeof(home));
+    home.lat = atof(lat_s) * 1.0e7;
+    home.lng = atof(lon_s) * 1.0e7;
+    home.alt = atof(alt_s) * 1.0e2;
     location = home;
     ground_level = home.alt*0.01;
 
-    dcm.from_euler(0, 0, radians(home_yaw));
+    dcm.from_euler(0, 0, radians(atof(yaw_s)));
+    free(s);
 
     set_speedup(1);
 
@@ -67,45 +79,6 @@ Aircraft::Aircraft(const char *home_str, const char *frame_str) :
     frame_counter = 0;
 }
 
-
-/*
-  parse a home string into a location and yaw
- */
-bool Aircraft::parse_home(const char *home_str, Location &loc, float &yaw_degrees)
-{
-    char *saveptr=NULL;
-    char *s = strdup(home_str);
-    if (!s) {
-        return false;
-    }
-    char *lat_s = strtok_r(s, ",", &saveptr);
-    if (!lat_s) {
-        return false;
-    }
-    char *lon_s = strtok_r(NULL, ",", &saveptr);
-    if (!lon_s) {
-        return false;
-    }
-    char *alt_s = strtok_r(NULL, ",", &saveptr);
-    if (!alt_s) {
-        return false;
-    }
-    char *yaw_s = strtok_r(NULL, ",", &saveptr);
-    if (!yaw_s) {
-        return false;
-    }
-
-    memset(&loc, 0, sizeof(loc));
-    loc.lat = strtof(lat_s, NULL) * 1.0e7;
-    loc.lng = strtof(lon_s, NULL) * 1.0e7;
-    loc.alt = strtof(alt_s, NULL) * 1.0e2;
-
-    yaw_degrees = strtof(yaw_s, NULL);
-    free(s);
-
-    return true;
-}
-    
 /*
    return true if we are on the ground
 */
@@ -133,9 +106,7 @@ void Aircraft::update_position(void)
         time_now_us += frame_time_us;
     }
     last_time_us = time_now_us;
-    if (use_time_sync) {
-        sync_frame_time();
-    }
+    sync_frame_time();
 }
 
 /*
@@ -262,11 +233,19 @@ double Aircraft::rand_normal(double mean, double stddev)
 
 
 
+/*
+   fill a sitl_fdm structure from the simulator state
+*/
+void Aircraft::fill_fdm(struct sitl_fdm &fdm, struct sitl_fdm_extras &fdm_extras) const
+{
+    fill_fdm_basic(fdm);
+    fill_fdm_extras(fdm_extras);
+}
 
 /*
    fill a sitl_fdm structure from the simulator state
 */
-void Aircraft::fill_fdm(struct sitl_fdm &fdm) const
+void Aircraft::fill_fdm_basic(struct sitl_fdm &fdm) const
 {
     fdm.timestamp_us = time_now_us;
     fdm.latitude  = location.lat * 1.0e-7;
@@ -288,11 +267,24 @@ void Aircraft::fill_fdm(struct sitl_fdm &fdm) const
     fdm.pitchDeg = degrees(p);
     fdm.yawDeg   = degrees(y);
     fdm.airspeed = airspeed;
-    fdm.battery_voltage = battery_voltage;
-    fdm.battery_current = battery_current;
-    fdm.rpm1 = rpm1;
-    fdm.rpm2 = rpm2;
+    fdm.magic = FDM_MAGIC;
 }
+
+/*
+   fill a sitl_fdm_extras with the current extras sensors measures, for the simulators that support them.
+   This method must be redefined by the backend simulator class.
+*/
+void Aircraft::fill_fdm_extras(struct sitl_fdm_extras &fdm_extras) const
+{
+    // Usual simulators do not support extra sensors. So all 'is_xxx_present' fields
+    // are set to false.
+    fdm_extras.timestamp_us = 0;
+    fdm_extras.sonar_down = 0;
+    fdm_extras.is_sonar_down_present = false;
+    fdm_extras.magic = FDM_EXTRAS_MAGIC;
+}
+
+
 
 uint64_t Aircraft::get_wall_time_us() const
 {
@@ -322,51 +314,4 @@ void Aircraft::set_speedup(float speedup)
     setup_frame_time(rate_hz, speedup);
 }
 
-/*
-  update the simulation attitude and relative position
- */
-void Aircraft::update_dynamics(const Vector3f &rot_accel)
-{
-    float delta_time = frame_time_us * 1.0e-6f;
-
-    // update rotational rates in body frame
-    gyro += rot_accel * delta_time;
-
-    // update attitude
-    dcm.rotate(gyro * delta_time);
-    dcm.normalize();
-
-    Vector3f accel_earth = dcm * accel_body;
-    accel_earth += Vector3f(0, 0, GRAVITY_MSS);
-
-    // if we're on the ground, then our vertical acceleration is limited
-    // to zero. This effectively adds the force of the ground on the aircraft
-    if (on_ground(position) && accel_earth.z > 0) {
-        accel_earth.z = 0;
-    }
-
-    // work out acceleration as seen by the accelerometers. It sees the kinematic
-    // acceleration (ie. real movement), plus gravity
-    accel_body = dcm.transposed() * (accel_earth + Vector3f(0, 0, -GRAVITY_MSS));
-
-    // new velocity vector
-    velocity_ef += accel_earth * delta_time;
-
-    // new position vector
-    Vector3f old_position = position;
-    position += velocity_ef * delta_time;
-
-    // assume zero wind for now
-    airspeed = velocity_ef.length();
-
-    // constrain height to the ground
-    if (on_ground(position)) {
-        if (!on_ground(old_position) && AP_HAL::millis() - last_ground_contact_ms > 1000) {
-            printf("Hit ground at %f m/s\n", velocity_ef.z);
-            last_ground_contact_ms = AP_HAL::millis();
-        }
-        position.z = -(ground_level + frame_height - home.alt*0.01f);
-    }
-}
-    
 } // namespace SITL

@@ -42,7 +42,7 @@ private:
 class AP_HAL_FLYMAPLE_NS::FLYMAPLESPIDeviceManager : public AP_HAL::SPIDeviceManager {
 public:
     FLYMAPLESPIDeviceManager();
-    void init();
+    void init(void *);
     AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice, uint8_t index);
 private:
     FLYMAPLESPIDeviceDriver _device;

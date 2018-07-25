@@ -343,11 +343,9 @@ build_antennatracker() {
 }
 
 # make sure PX4 is rebuilt from scratch
-for d in ArduPlane ArduCopter APMrover2 AntennaTracker; do
-         pushd $d
-         make px4-clean || exit 1
-         popd
-done
+pushd ArduPlane
+make px4-clean || exit 1
+popd
 
 for build in stable beta latest; do
     build_arduplane $build

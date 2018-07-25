@@ -54,19 +54,6 @@ public:
         name(_name),
         num_motors(_num_motors),
         motors(_motors) {}
-
-    // initialise frame
-    void init(float mass, float hover_throttle, float terminal_velocity, float terminal_rotation_rate);
-
-    // calculate rotational and linear accelerations
-    void calculate_forces(const Aircraft &aircraft,
-                          const Aircraft::sitl_input &input,
-                          Vector3f &rot_accel, Vector3f &body_accel);
-    
-    float terminal_velocity;
-    float terminal_rotation_rate;
-    float thrust_scale;
-    float mass;
 };
 
 /*
@@ -84,10 +71,13 @@ public:
         return new MultiCopter(home_str, frame_str);
     }
 
-protected:
-    // calculate rotational and linear accelerations
-    void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel);
-    Frame *frame;
+private:
+    const Frame *frame;
+    float hover_throttle; // 0..1
+    float terminal_velocity; // m/s
+
+    const float terminal_rotation_rate;
+    float thrust_scale;
 };
 
 } // namespace SITL

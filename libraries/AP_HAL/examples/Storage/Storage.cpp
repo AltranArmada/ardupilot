@@ -13,8 +13,8 @@ void setup(void)
     /*
       init Storage API
      */
-    hal.console->printf("Starting AP_HAL::Storage test\r\n");
-    st->init();
+    hal.console->printf_P(PSTR("Starting AP_HAL::Storage test\r\n"));
+    st->init(NULL);
 
     /*
       Calculate XOR of the full conent of memory
@@ -33,7 +33,7 @@ void setup(void)
     /*
       print XORed result
      */
-    hal.console->printf("XORed ememory: %u\r\n", (unsigned) XOR_res);
+    hal.console->printf_P(PSTR("XORed ememory: %u\r\n"), (unsigned) XOR_res);
 }
 
 // In main loop do nothing

@@ -1,7 +1,11 @@
 #ifndef __AP_HAL_LINUX_STORAGE_H__
 #define __AP_HAL_LINUX_STORAGE_H__
 
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBOARD || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+#define LINUX_STORAGE_USE_FRAM 1
+#else
 #define LINUX_STORAGE_USE_FRAM 0
+#endif
 
 #include <AP_HAL/AP_HAL.h>
 #include "AP_HAL_Linux_Namespace.h"
@@ -21,7 +25,7 @@ public:
         return static_cast<Storage*>(storage);
     }
 
-    void init() {}
+    void init(void* machtnichts) {}
     uint8_t  read_byte(uint16_t loc);
     uint16_t read_word(uint16_t loc);
     uint32_t read_dword(uint16_t loc);

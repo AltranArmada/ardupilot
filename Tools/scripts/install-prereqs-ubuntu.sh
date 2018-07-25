@@ -6,6 +6,7 @@ OPT="/opt"
 
 BASE_PKGS="gawk make git arduino-core curl"
 SITL_PKGS="g++ python-pip python-matplotlib python-serial python-wxgtk2.8 python-scipy python-opencv python-numpy python-pyparsing ccache realpath"
+AVR_PKGS="gcc-avr binutils-avr avr-libc"
 PYTHON_PKGS="pymavlink MAVProxy droneapi catkin_pkg"
 PX4_PKGS="python-serial python-argparse openocd flex bison libncurses5-dev \
           autoconf texinfo build-essential libftdi-dev libtool zlib1g-dev \
@@ -58,7 +59,7 @@ sudo usermod -a -G dialout $USER
 
 $APT_GET remove modemmanager
 $APT_GET update
-$APT_GET install $BASE_PKGS $SITL_PKGS $PX4_PKGS $BEBOP_PKGS $UBUNTU64_PKGS
+$APT_GET install $BASE_PKGS $SITL_PKGS $PX4_PKGS $BEBOP_PKGS $UBUNTU64_PKGS $AVR_PKGS
 sudo pip2 -q install $PYTHON_PKGS
 
 if [ ! -d $OPT/$ARM_ROOT ]; then

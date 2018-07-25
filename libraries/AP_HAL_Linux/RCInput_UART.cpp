@@ -15,13 +15,15 @@
 
 #define MAGIC 0x55AA
 
+static const AP_HAL::HAL& hal = AP_HAL::get_HAL();
+
 using namespace Linux;
 
 RCInput_UART::RCInput_UART(const char *path)
 {
     _fd = open(path, O_RDONLY|O_NOCTTY|O_NONBLOCK|O_NDELAY);
     if (_fd < 0) {
-        AP_HAL::panic("RCInput_UART: Error opening '%s': %s",
+        hal.scheduler->panic("RCInput_UART: Error opening '%s': %s",
                              path, strerror(errno));
     }
 }
@@ -31,7 +33,7 @@ RCInput_UART::~RCInput_UART()
     close(_fd);
 }
 
-void RCInput_UART::init()
+void RCInput_UART::init(void*)
 {
     struct termios options;
 
@@ -48,7 +50,7 @@ void RCInput_UART::init()
     options.c_oflag &= ~OPOST;
 
     if (tcsetattr(_fd, TCSANOW, &options) != 0) {
-        AP_HAL::panic("RCInput_UART: error configuring device: %s",
+        hal.scheduler->panic("RCInput_UART: error configuring device: %s",
                              strerror(errno));
     }
 

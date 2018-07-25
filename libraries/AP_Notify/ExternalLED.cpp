@@ -18,9 +18,6 @@
 #include <AP_HAL/AP_HAL.h>
 #include "AP_Notify.h"
 
-#if (defined(EXTERNAL_LED_ARMED) && defined(EXTERNAL_LED_GPS) && \
-    defined(EXTERNAL_LED_MOTOR1) && defined(EXTERNAL_LED_MOTOR2))
-
 extern const AP_HAL::HAL& hal;
 
 bool ExternalLED::init(void)
@@ -248,7 +245,3 @@ void ExternalLED::motor_led2(bool on_off)
         hal.gpio->write(EXTERNAL_LED_MOTOR2, _flags.motorled2_on);
     }
 }
-#else
-bool ExternalLED::init(void) {return true;}
-void ExternalLED::update(void) {return;}
-#endif

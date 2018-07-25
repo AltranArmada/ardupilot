@@ -35,19 +35,9 @@
  * SUCH DAMAGE.
  */
 
-#include <AP_HAL/AP_HAL.h>
-#if HAL_OS_POSIX_IO
-
 #include "getopt_cpp.h"
 #include <stdio.h>
 #include <string.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_QURT
-#define GETOPT_ERROR(...) HAP_printf(__FILE__, __LINE__, __VA_ARGS__)
-#else
-#define GETOPT_ERROR(...) fprintf(stderr, __VA_ARGS__)
-#endif
-
 
 /*
   constructor
@@ -124,10 +114,10 @@ int GetOptLong::getoption(void)
                         {
                             if (optstring[0] == ':')
                                 return BADARG;
-                            if (opterr) {
-                                GETOPT_ERROR("%s: option requires an argument -- %s\n",
-                                             argv[0], place);
-                            }
+                            if (opterr)
+                                fprintf(stderr,
+                                        "%s: option requires an argument -- %s\n",
+                                        argv[0], place);
                             place = "";
                             optind++;
                             return BADCH;
@@ -158,9 +148,9 @@ int GetOptLong::getoption(void)
                 }
             }
             
-            if (opterr && optstring[0] != ':') {
-                GETOPT_ERROR("%s: illegal option -- %s\n", argv[0], place);
-            }
+            if (opterr && optstring[0] != ':')
+                fprintf(stderr,
+                        "%s: illegal option -- %s\n", argv[0], place);
             place = "";
             optind++;
             return BADCH;
@@ -175,9 +165,9 @@ int GetOptLong::getoption(void)
     {
         if (!*place)
             ++optind;
-        if (opterr && *optstring != ':') {
-            GETOPT_ERROR("%s: illegal option -- %c\n", argv[0], optopt);
-        }
+        if (opterr && *optstring != ':')
+            fprintf(stderr,
+                    "%s: illegal option -- %c\n", argv[0], optopt);
         return BADCH;
     }
     
@@ -196,10 +186,10 @@ int GetOptLong::getoption(void)
             place = "";
             if (*optstring == ':')
                 return BADARG;
-            if (opterr) {
-                GETOPT_ERROR("%s: option requires an argument -- %c\n",
-                             argv[0], optopt);
-            }
+            if (opterr)
+                fprintf(stderr,
+                        "%s: option requires an argument -- %c\n",
+                        argv[0], optopt);
             return BADCH;
         }
         else
@@ -210,6 +200,4 @@ int GetOptLong::getoption(void)
     }
     return optopt;
 }
-
-#endif // HAL_OS_POSIX_IO
 

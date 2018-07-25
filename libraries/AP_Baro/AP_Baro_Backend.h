@@ -1,5 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#pragma once
+
+#ifndef __AP_BARO_BACKEND_H__
+#define __AP_BARO_BACKEND_H__
 
 #include "AP_Baro.h"
 
@@ -23,3 +25,5 @@ protected:
 
     void _copy_to_frontend(uint8_t instance, float pressure, float temperature);
 };
+
+#endif // __AP_BARO_BACKEND_H__

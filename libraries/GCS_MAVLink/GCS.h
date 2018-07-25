@@ -87,6 +87,7 @@ public:
     void        setup_uart(const AP_SerialManager& serial_manager, AP_SerialManager::SerialProtocol protocol, uint8_t instance);
     void        send_message(enum ap_message id);
     void        send_text(MAV_SEVERITY severity, const char *str);
+    void        send_text_P(MAV_SEVERITY severity, const prog_char_t *str);
     void        data_stream_send(void);
     void        queued_param_send();
     void        queued_waypoint_send();
@@ -164,11 +165,8 @@ public:
       connections. This function is static so it can be called from
       any library
     */
-    static void send_statustext_all(MAV_SEVERITY severity, const char *fmt, ...);
+    static void send_statustext_all(MAV_SEVERITY severity, const prog_char_t *fmt, ...);
 
-    // send a PARAM_VALUE message to all active MAVLink connections.
-    static void send_parameter_value_all(const char *param_name, ap_var_type param_type, float param_value);
-    
     /*
       send a MAVLink message to all components with this vehicle's system id
       This is a no-op if no routes to components have been learned
@@ -212,6 +210,12 @@ private:
     ///
     /// @return         The number of reportable parameters.
     ///
+    uint16_t                    _count_parameters(); ///< count reportable
+                                                     // parameters
+
+    uint16_t                    _parameter_count;   ///< cache of reportable
+                                                    // parameters
+
     mavlink_channel_t           chan;
     uint16_t                    packet_drops;
 

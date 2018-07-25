@@ -3,17 +3,16 @@
 #define __AP_HAL_SITL_NAMESPACE_H__
 
 namespace HALSITL {
-class UARTDriver;
-class Scheduler;
+class SITLUARTDriver;
+class SITLScheduler;
 class SITL_State;
-class EEPROMStorage;
-class AnalogIn;
-class RCInput;
-class RCOutput;
+class SITLEEPROMStorage;
+class SITLAnalogIn;
+class SITLRCInput;
+class SITLRCOutput;
 class ADCSource;
 class RCInput;
-class Util;
-class Semaphore;
+class SITLUtil;
 }
 
 #endif // __AP_HAL_SITL_NAMESPACE_H__

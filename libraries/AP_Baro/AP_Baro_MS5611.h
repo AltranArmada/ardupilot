@@ -1,9 +1,10 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#pragma once
 
-#include "AP_Baro_Backend.h"
+#ifndef __AP_BARO_MS5611_H__
+#define __AP_BARO_MS5611_H__
 
 #include <AP_HAL/AP_HAL.h>
+#include "AP_Baro.h"
 
 /** Abstract serial bus device driver for I2C/SPI. */
 class AP_SerialBus
@@ -74,18 +75,17 @@ private:
 class AP_Baro_MS56XX : public AP_Baro_Backend
 {
 public:
+    AP_Baro_MS56XX(AP_Baro &baro, AP_SerialBus *serial, bool use_timer);
     void update();
     void accumulate();
 
-protected:
-    AP_Baro_MS56XX(AP_Baro &baro, AP_SerialBus *serial, bool use_timer);
-    void _init();
-
+private:
     virtual void _calculate() = 0;
-    virtual bool _read_prom(uint16_t prom[8]);
-    void _timer();
-
     AP_SerialBus *_serial;
+
+    bool _check_crc();
+
+    void _timer();
 
     /* Asynchronous state: */
     volatile bool            _updated;
@@ -97,8 +97,9 @@ protected:
 
     bool _use_timer;
 
+protected:
     // Internal calibration registers
-    uint16_t                 _c1,_c2,_c3,_c4,_c5,_c6;
+    uint16_t                 _C1,_C2,_C3,_C4,_C5,_C6;
     float                    _D1,_D2;
     uint8_t _instance;
 };
@@ -125,5 +126,5 @@ public:
     AP_Baro_MS5637(AP_Baro &baro, AP_SerialBus *serial, bool use_timer);
 private:
     void _calculate();
-    bool _read_prom(uint16_t prom[8]) override;
 };
+#endif //  __AP_BARO_MS5611_H__

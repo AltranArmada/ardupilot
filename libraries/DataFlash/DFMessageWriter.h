@@ -1,31 +1,31 @@
 #ifndef DF_LOGSTARTUP_H
 #define DF_LOGSTARTUP_H
 
-#include "DataFlash_Backend.h"
-
+#include <AP_HAL/AP_HAL.h>
 #include <AP_Mission/AP_Mission.h>
+
+class DataFlash_Class;
 
 class DFMessageWriter {
 public:
+    DFMessageWriter(DataFlash_Class &DataFlash) :
+        _DataFlash(DataFlash) { }
 
     virtual void reset() = 0;
     virtual void process() = 0;
     virtual bool finished() { return _finished; };
 
-    virtual void set_dataflash_backend(class DataFlash_Backend *backend) {
-        _dataflash_backend = backend;
-    }
-
 protected:
     bool _finished = false;
-    DataFlash_Backend *_dataflash_backend = nullptr;
+    DataFlash_Class &_DataFlash;
 };
 
 
 class DFMessageWriter_WriteSysInfo : public DFMessageWriter {
 public:
-    DFMessageWriter_WriteSysInfo(const char *firmware_string) :
-        DFMessageWriter(),
+    DFMessageWriter_WriteSysInfo(DataFlash_Class &DataFlash,
+                                 const prog_char_t *firmware_string) :
+        DFMessageWriter(DataFlash),
         _firmware_string(firmware_string)
         { }
 
@@ -39,14 +39,16 @@ private:
         ws_blockwriter_stage_git_versions,
         ws_blockwriter_stage_system_id
     };
-    write_sysinfo_blockwriter_stage stage = ws_blockwriter_stage_init;
+    write_sysinfo_blockwriter_stage stage;
 
-    const char *_firmware_string;
+    const prog_char_t *_firmware_string;
 };
 
 class DFMessageWriter_WriteEntireMission : public DFMessageWriter {
 public:
-
+    DFMessageWriter_WriteEntireMission(DataFlash_Class &DataFlash) :
+        DFMessageWriter(DataFlash)
+        {}
     void reset();
     void process();
 
@@ -67,17 +69,13 @@ private:
 
 class DFMessageWriter_DFLogStart : public DFMessageWriter {
 public:
-    DFMessageWriter_DFLogStart(const char *firmware_string) :
-        _writesysinfo(firmware_string),
-        _writeentiremission()
+    DFMessageWriter_DFLogStart(DataFlash_Class &DataFlash,
+                               const prog_char_t *firmware_string) :
+        DFMessageWriter{DataFlash},
+        _writesysinfo(DataFlash, firmware_string),
+        _writeentiremission(DataFlash)
         {
         }
-
-    virtual void set_dataflash_backend(class DataFlash_Backend *backend) {
-        DFMessageWriter::set_dataflash_backend(backend);
-        _writesysinfo.set_dataflash_backend(backend);
-        _writeentiremission.set_dataflash_backend(backend);
-    }
 
     void reset();
     void process();
@@ -99,7 +97,7 @@ private:
 
     bool _fmt_done = false;
 
-    log_start_blockwriter_stage stage = ls_blockwriter_stage_init;
+    log_start_blockwriter_stage stage;
 
     uint16_t next_format_to_send;
     AP_Param::ParamToken token;

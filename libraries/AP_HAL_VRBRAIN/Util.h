@@ -22,7 +22,7 @@ public:
      */
     bool get_system_id(char buf[40]);
 
-    uint32_t available_memory(void) override;
+    uint16_t available_memory(void);
 
 private:
     int _safety_handle;

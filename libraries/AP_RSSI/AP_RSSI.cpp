@@ -20,7 +20,7 @@
 extern const AP_HAL::HAL& hal;
 
 
-const AP_Param::GroupInfo AP_RSSI::var_info[] = {
+const AP_Param::GroupInfo AP_RSSI::var_info[] PROGMEM = {
 
     // @Param: TYPE
     // @DisplayName: RSSI Type

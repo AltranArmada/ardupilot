@@ -25,7 +25,7 @@ void setup() {
     compass.set_declination(ToRad(0.0f)); // set local difference between magnetic north and true north
 
     hal.scheduler->delay(1000);
-    timer = AP_HAL::micros();
+    timer = hal.scheduler->micros();
 }
 
 void loop()
@@ -34,11 +34,11 @@ void loop()
 
     compass.accumulate();
 
-    if((AP_HAL::micros()- timer) > 100000L)
+    if((hal.scheduler->micros()- timer) > 100000L)
     {
-        timer = AP_HAL::micros();
+        timer = hal.scheduler->micros();
         compass.read();
-        unsigned long read_time = AP_HAL::micros() - timer;
+        unsigned long read_time = hal.scheduler->micros() - timer;
         float heading;
 
         if (!compass.healthy()) {

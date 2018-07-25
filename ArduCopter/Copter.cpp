@@ -22,6 +22,7 @@
 const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 Copter::Copter(void) :
+    ins_sample_rate(AP_InertialSensor::RATE_400HZ),
     flight_modes(&g.flight_mode1),
     sonar_enabled(true),
     mission(ahrs, 
@@ -49,6 +50,7 @@ Copter::Copter(void) :
     guided_mode(Guided_TakeOff),
     rtl_state(RTL_InitialClimb),
     rtl_state_complete(false),
+    rtl_alt(0.0f),
     circle_pilot_yaw_override(false),
     simple_cos_yaw(1.0f),
     simple_sin_yaw(0.0f),
@@ -79,8 +81,13 @@ Copter::Copter(void) :
     condition_start(0),
     G_Dt(0.0025f),
     inertial_nav(ahrs),
+#if FRAME_CONFIG == HELI_FRAME
     attitude_control(ahrs, aparm, motors, g.p_stabilize_roll, g.p_stabilize_pitch, g.p_stabilize_yaw,
                      g.pid_rate_roll, g.pid_rate_pitch, g.pid_rate_yaw),
+#else
+    attitude_control(ahrs, aparm, motors, g.p_stabilize_roll, g.p_stabilize_pitch, g.p_stabilize_yaw,
+                     g.pid_rate_roll, g.pid_rate_pitch, g.pid_rate_yaw),
+#endif
     pos_control(ahrs, inertial_nav, motors, attitude_control,
                 g.p_alt_hold, g.p_vel_z, g.pid_accel_z,
                 g.p_pos_xy, g.pi_vel_xy),
@@ -110,15 +117,11 @@ Copter::Copter(void) :
 #if PARACHUTE == ENABLED
     parachute(relay),
 #endif
-#if AP_TERRAIN_AVAILABLE && AC_TERRAIN
+#if AP_TERRAIN_AVAILABLE
     terrain(ahrs, mission, rally),
 #endif
 #if PRECISION_LANDING == ENABLED
-    precland(ahrs, inertial_nav, MAIN_LOOP_SECONDS),
-#endif
-#if FRAME_CONFIG == HELI_FRAME
-    // ToDo: Input Manager is only used by Heli for 3.3, but will be used by all frames for 3.4
-    input_manager(MAIN_LOOP_RATE),
+    precland(ahrs, inertial_nav, g.pi_precland, MAIN_LOOP_SECONDS),
 #endif
     in_mavlink_delay(false),
     gcs_out_of_time(false),

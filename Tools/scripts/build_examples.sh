@@ -6,7 +6,7 @@
 set -e
 set -x
 
-targets="clean navio"
+targets="clean apm2"
 
 [ $# -gt 0 ] && {
     targets="$*"

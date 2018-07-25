@@ -8,6 +8,7 @@
 #include <AP_ADC/AP_ADC.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <math.h>
+#include <AP_Progmem/AP_Progmem.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_HAL/AP_HAL.h>
@@ -41,7 +42,7 @@ void setup()
     }
     hal.console->println("initialisation complete.");
     hal.scheduler->delay(1000);
-    timer = AP_HAL::micros();
+    timer = hal.scheduler->micros();
 }
 
 void loop()
@@ -50,17 +51,17 @@ void loop()
     static uint32_t last_print;
 
     // accumulate values at 100Hz
-    if ((AP_HAL::micros()- timer) > 20000L) {
+    if ((hal.scheduler->micros()- timer) > 20000L) {
 	    bmp085.accumulate();
-	    timer = AP_HAL::micros();
+	    timer = hal.scheduler->micros();
     }
 
     // print at 10Hz
-    if ((AP_HAL::millis()- last_print) >= 100) {
-	uint32_t start = AP_HAL::micros();
-        last_print = AP_HAL::millis();
+    if ((hal.scheduler->millis()- last_print) >= 100) {
+	uint32_t start = hal.scheduler->micros();
+        last_print = hal.scheduler->millis();
         bmp085.read();
-        uint32_t read_time = AP_HAL::micros() - start;
+        uint32_t read_time = hal.scheduler->micros() - start;
         if (! bmp085.healthy) {
             hal.console->println("not healthy");
             return;

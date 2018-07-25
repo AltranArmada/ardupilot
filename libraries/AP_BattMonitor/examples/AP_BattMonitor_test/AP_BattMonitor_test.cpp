@@ -21,13 +21,13 @@ void setup() {
     battery_mon.init();
 
     hal.scheduler->delay(1000);
-    timer = AP_HAL::millis();
+    timer = hal.scheduler->millis();
 }
 
 void loop()
 {
     static uint8_t counter; // counter to slow output to the user
-    uint32_t now = AP_HAL::millis();
+    uint32_t now = hal.scheduler->millis();
 
     // call battery monitor at 10hz
     if((now - timer) > 100) {

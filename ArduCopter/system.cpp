@@ -14,17 +14,17 @@
 // This is the help function
 int8_t Copter::main_menu_help(uint8_t argc, const Menu::arg *argv)
 {
-    cliSerial->printf("Commands:\n"
+    cliSerial->printf_P(PSTR("Commands:\n"
                          "  logs\n"
                          "  setup\n"
                          "  test\n"
                          "  reboot\n"
-                         "\n");
+                         "\n"));
     return(0);
 }
 
 // Command/function table for the top-level menu.
-const struct Menu::command main_menu_commands[] = {
+const struct Menu::command main_menu_commands[] PROGMEM = {
 //   command		function called
 //   =======        ===============
     {"logs",                MENU_FUNC(process_logs)},
@@ -94,12 +94,9 @@ void Copter::init_ardupilot()
     // initialise serial port
     serial_manager.init_console();
 
-    // init vehicle capabilties
-    init_capabilities();
-
-    cliSerial->printf("\n\nInit " FIRMWARE_STRING
-                         "\n\nFree RAM: %u\n",
-                      (unsigned)hal.util->available_memory());
+    cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
+                         "\n\nFree RAM: %u\n"),
+                        hal.util->available_memory());
 
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
@@ -147,11 +144,15 @@ void Copter::init_ardupilot()
     // init telemetry port
     gcs[1].setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 0);
 
+#if MAVLINK_COMM_NUM_BUFFERS > 2
     // setup serial port for telem2
     gcs[2].setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 1);
+#endif
 
+#if MAVLINK_COMM_NUM_BUFFERS > 3
     // setup serial port for fourth telemetry port (not used by default)
     gcs[3].setup_uart(serial_manager, AP_SerialManager::SerialProtocol_MAVLink, 2);
+#endif
 
 #if FRSKY_TELEM_ENABLED == ENABLED
     // setup frsky
@@ -164,9 +165,6 @@ void Copter::init_ardupilot()
 #if LOGGING_ENABLED == ENABLED
     log_init();
 #endif
-
-    // update motor interlock state
-    update_using_interlock();
 
 #if FRAME_CONFIG == HELI_FRAME
     // trad heli specific initialisation
@@ -221,13 +219,13 @@ void Copter::init_ardupilot()
 
 #if CLI_ENABLED == ENABLED
     if (g.cli_enabled) {
-        const char *msg = "\nPress ENTER 3 times to start interactive setup\n";
-        cliSerial->println(msg);
+        const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
+        cliSerial->println_P(msg);
         if (gcs[1].initialised && (gcs[1].get_uart() != NULL)) {
-            gcs[1].get_uart()->println(msg);
+            gcs[1].get_uart()->println_P(msg);
         }
         if (num_gcs > 2 && gcs[2].initialised && (gcs[2].get_uart() != NULL)) {
-            gcs[2].get_uart()->println(msg);
+            gcs[2].get_uart()->println_P(msg);
         }
     }
 #endif // CLI_ENABLED
@@ -236,7 +234,7 @@ void Copter::init_ardupilot()
     while (barometer.get_last_update() == 0) {
         // the barometer begins updating when we get the first
         // HIL_STATE message
-        gcs_send_text(MAV_SEVERITY_WARNING, "Waiting for first HIL_STATE message");
+        gcs_send_text_P(MAV_SEVERITY_WARNING, PSTR("Waiting for first HIL_STATE message"));
         delay(1000);
     }
 
@@ -281,7 +279,10 @@ void Copter::init_ardupilot()
     ins.set_raw_logging(should_log(MASK_LOG_IMU_RAW));
     ins.set_dataflash(&DataFlash);
 
-    cliSerial->print("\nReady to FLY ");
+    // init vehicle capabilties
+    init_capabilities();
+
+    cliSerial->print_P(PSTR("\nReady to FLY "));
 
     // flag that initialisation has completed
     ap.initialised = true;
@@ -298,7 +299,7 @@ void Copter::startup_INS_ground()
     ahrs.set_vehicle_class(AHRS_VEHICLE_COPTER);
 
     // Warm up and calibrate gyro offsets
-    ins.init(scheduler.get_loop_rate_hz());
+    ins.init(ins_sample_rate);
 
     // reset ahrs including gyro bias
     ahrs.reset();

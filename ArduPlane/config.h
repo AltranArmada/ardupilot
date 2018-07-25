@@ -63,7 +63,11 @@
 //
 
 #ifndef FRSKY_TELEM_ENABLED
-#define FRSKY_TELEM_ENABLED ENABLED
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+ # define FRSKY_TELEM_ENABLED ENABLED
+#else
+ # define FRSKY_TELEM_ENABLED DISABLED
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -78,7 +82,11 @@
 #endif
 #endif
 
-#define RANGEFINDER_ENABLED ENABLED
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+# define RANGEFINDER_ENABLED ENABLED
+#else
+# define RANGEFINDER_ENABLED DISABLED
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -240,7 +248,11 @@
 //
 // uses 7726 bytes of memory on 2560 chips (all options are enabled)
 #ifndef MOUNT
-#define MOUNT          ENABLED
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+ # define MOUNT          ENABLED
+#else
+ # define MOUNT          DISABLED
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -339,7 +351,25 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#define DEFAULT_LOG_BITMASK     \
+    MASK_LOG_ATTITUDE_MED | \
+    MASK_LOG_GPS | \
+    MASK_LOG_PM | \
+    MASK_LOG_NTUN | \
+    MASK_LOG_CTUN | \
+    MASK_LOG_MODE | \
+    MASK_LOG_CMD | \
+    MASK_LOG_COMPASS | \
+    MASK_LOG_CURRENT | \
+    MASK_LOG_TECS | \
+    MASK_LOG_CAMERA | \
+    MASK_LOG_RC
+#else
+// other systems have plenty of space for full logs
 #define DEFAULT_LOG_BITMASK   0xffff
+#endif
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -381,7 +411,11 @@
 // use this to completely disable the CLI. We now default the CLI to
 // off on smaller boards.
 #ifndef CLI_ENABLED
-#define CLI_ENABLED ENABLED
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+ # define CLI_ENABLED ENABLED
+#else
+ # define CLI_ENABLED DISABLE
+#endif
 #endif
 
 // use this to disable geo-fencing
@@ -410,15 +444,21 @@
 
 // OBC Failsafe enable
 #ifndef OBC_FAILSAFE
-#define OBC_FAILSAFE ENABLED
+#if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
+ # define OBC_FAILSAFE ENABLED
+#else
+ # define OBC_FAILSAFE DISABLED
+#endif
 #endif
 
-#define HIL_SUPPORT ENABLED
+#if OBC_FAILSAFE == ENABLED && HAL_CPU_CLASS < HAL_CPU_CLASS_75
+#define CLI_ENABLED DISABLED
+#endif
 
-//////////////////////////////////////////////////////////////////////////////
-// Parachute release
-#ifndef PARACHUTE
-#define PARACHUTE ENABLED
+#if HAL_CPU_CLASS < HAL_CPU_CLASS_75
+#define HIL_SUPPORT DISABLED
+#else
+#define HIL_SUPPORT ENABLED
 #endif
 
 /*
